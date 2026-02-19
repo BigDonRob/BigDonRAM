@@ -97,21 +97,21 @@ class BDRAMScanner {
             // Stage 1 — Static List Detection
             // ------------------------------------------------------------------
             globalEventBus.emit('stage:update',    { stage: 'static-list', status: 'active' });
-            globalEventBus.emit('progress:update', { percent: 15, status: 'Ingesting batch data…' });
+            globalEventBus.emit('progress:update', { percent: 10, status: 'Ingesting batch data…' });
 
             this._ingestPreprocessorOutput(preprocessorOutput);
             for (const t of targetAddresses) this.injectedTargets.add(t);
 
-            globalEventBus.emit('progress:update', { percent: 25, status: 'Filtering VTable anchors…' });
+            globalEventBus.emit('progress:update', { percent: 11, status: 'Filtering VTable anchors…' });
             this.detectAndRemoveVTableAnchors();
 
-            globalEventBus.emit('progress:update', { percent: 30, status: 'Filtering close-proximity nodes…' });
+            globalEventBus.emit('progress:update', { percent: 15, status: 'Filtering close-proximity nodes…' });
             this.removeCloseProximityNodes();
 
-            globalEventBus.emit('progress:update', { percent: 35, status: 'Classifying nodes…' });
+            globalEventBus.emit('progress:update', { percent: 20, status: 'Classifying nodes…' });
             this.classifyNodes();
 
-            globalEventBus.emit('progress:update', { percent: 45, status: 'Detecting static lists…' });
+            globalEventBus.emit('progress:update', { percent: 25, status: 'Detecting static lists…' });
             detectStaticLists(this);
 
             globalEventBus.emit('stage:update',    { stage: 'static-list', status: 'completed' });
@@ -121,7 +121,7 @@ class BDRAMScanner {
             // Stage 2 — Dynamic List Detection
             // ------------------------------------------------------------------
             globalEventBus.emit('stage:update',    { stage: 'dynamic-list', status: 'active' });
-            globalEventBus.emit('progress:update', { percent: 65, status: 'Detecting dynamic lists…' });
+            globalEventBus.emit('progress:update', { percent: 25, status: 'Detecting dynamic lists…' });
             detectDynamicLists(this);
 
             globalEventBus.emit('stage:update', { stage: 'dynamic-list', status: 'completed' });
@@ -131,12 +131,12 @@ class BDRAMScanner {
             // Stage 3 — Precomputation
             // ------------------------------------------------------------------
             globalEventBus.emit('stage:update',    { stage: 'precompute', status: 'active' });
-            globalEventBus.emit('progress:update', { percent: 60, status: 'Building base pointer set…' });
+            globalEventBus.emit('progress:update', { percent: 26, status: 'Building base pointer set…' });
 
             const batchIndexes = buildBatchIndexes(this);
             buildBasePointerSet(this, batchIndexes);
 
-            globalEventBus.emit('progress:update', { percent: 75, status: 'Precomputing offset bitmaps…' });
+            globalEventBus.emit('progress:update', { percent: 45, status: 'Precomputing offset bitmaps…' });
             const bitmapCtx = buildTraversalBitmaps(this, batchIndexes);
 
             globalEventBus.emit('stage:update', { stage: 'precompute', status: 'completed' });
@@ -146,7 +146,7 @@ class BDRAMScanner {
             // Stage 4 — Bitmap Scanning
             // ------------------------------------------------------------------
             globalEventBus.emit('stage:update',    { stage: 'bitmap-scan', status: 'active' });
-            globalEventBus.emit('progress:update', { percent: 85, status: 'Scanning base pointers…' });
+            globalEventBus.emit('progress:update', { percent: 46, status: 'Scanning base pointers…' });
             await scanAllBasePointers(this, batchIndexes, bitmapCtx);
 
             globalEventBus.emit('stage:update', { stage: 'bitmap-scan', status: 'completed' });
@@ -156,7 +156,7 @@ class BDRAMScanner {
             // Stage 5 — Generating Achievements
             // ------------------------------------------------------------------
             globalEventBus.emit('stage:update', { stage: 'generate', status: 'active' });
-            globalEventBus.emit('progress:update', { percent: 95, status: 'Generating achievements…' });
+            globalEventBus.emit('progress:update', { percent: 96, status: 'Generating achievements…' });
             this.streamAchievements();
 
             const savedBatchCount     = this.batches.length;
