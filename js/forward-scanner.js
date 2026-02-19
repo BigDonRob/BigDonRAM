@@ -130,17 +130,25 @@ function buildBatchIndexes(sc) {
  */
 function buildTraversalBitmaps(sc, batchIndexes) {
     const B          = sc.batches.length;
-    const bpSet      = new Set(sc.basePointers.keys());
-    const BUDGET_INT = (80 * 1024 * 1024) / 4;      // budget in Int32 units
+    const BUDGET_INT = (80 * 1024 * 1024) / 4;
     const maxBreadth = (parseInt(sc.maxBreadth, 16) & 0xFFFFFC);
-    const totalSlots = Math.ceil(maxBreadth / 128);  // slots needed for full coverage
+    const totalSlots = Math.ceil(maxBreadth / 128);
 
-    // Collect traversal nodes from the union of all batch indexes, excluding
-    // base pointers (which are only ever depth-0 start points).
+    // Excluded from precomputed bitmaps:
+    //   - staticStaticNodes: same value in every batch, extremely numerous,
+    //     calculated on the fly when encountered mid-chain.
+    //   - injectedTargets: sentinel dummy nodes, not real traversal addresses.
+    // Base pointers are NOT excluded — they can appear as intermediate nodes
+    // in chains rooted at a different base pointer.
+    const ssSet       = new Set(sc.staticStaticNodes.keys());
+    const targetSet   = sc.injectedTargets;
+
     const traversalAddrs = new Set();
     for (let b = 0; b < B; b++) {
         for (const addr of batchIndexes[b].keys()) {
-            if (!bpSet.has(addr)) traversalAddrs.add(addr);
+            if (!ssSet.has(addr) && !targetSet.has(addr)) {
+                traversalAddrs.add(addr);
+            }
         }
     }
     const N = traversalAddrs.size;
@@ -159,17 +167,17 @@ function buildTraversalBitmaps(sc, batchIndexes) {
         `Bitmap precompute: ${N} traversal nodes × ${B} batches × ${usedSlots} slots = ` +
         `${actualMB} MB, covering 0x000–0x${(precompBytes - 4).toString(16).toUpperCase()} ` +
         `of 0x${maxBreadth.toString(16).toUpperCase()} ` +
-        `(${sc.basePointers.size} base pointers excluded)`
+        `(${ssSet.size} StaticStatics + ${targetSet.size} injected targets excluded, on-the-fly)` 
     );
 
     const store = new Map();
 
     for (const addr of traversalAddrs) {
-        const bm = new Int32Array(B * usedSlots);   // zero-initialised
+        const bm = new Int32Array(B * usedSlots);
 
         for (let b = 0; b < B; b++) {
             const dataIdx = batchIndexes[b].get(addr);
-            if (dataIdx === undefined) continue;    // node absent in this batch
+            if (dataIdx === undefined) continue;
 
             const value   = sc.batches[b].values[dataIdx];
             const bOffset = b * usedSlots;
