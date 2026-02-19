@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigDonRAM - Test Achievement Generator</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/components.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-content">
+                <h1 class="app-title">
+                    <span class="title-icon">🔍</span>
+                    BigDonRAM Scanner
+                </h1>
+                <p class="app-subtitle">Generate test achievements from RAM dumps with pointer-based structure detection</p>
+            </div>
+        </header>
+
+        <main class="app-main">
+            <!-- Upload Section -->
+            <section class="upload-section" id="uploadSection">
+                <!-- Instructions -->
+                <div class="instructions-header" id="instructionsHeader">
+                    <p class="instructions-text">Select System to see value ranges for search</p>
+                </div>
+                
+                <div class="upload-layout">
+                    <!-- Column 1: Controls -->
+                    <div class="controls-column">
+                        <div class="control-row">
+                            <div class="system-selector">
+                                <label for="systemSelect" class="selector-label">System:</label>
+                                <select id="systemSelect" class="system-select">
+                                    <option value="">Select a system...</option>
+                                    <option value="gamecube">GameCube</option>
+                                    <option value="wii">Wii</option>
+                                    <option value="ps2">PlayStation 2</option>
+                                    <option value="psp">PlayStation Portable</option>
+                                    <option value="ds">Nintendo DS</option>
+                                    <option value="dsi">Nintendo DSi</option>
+                                    <option value="n64">Nintendo 64</option>
+                                    <option value="ps1">PlayStation 1</option>
+                                    <option value="dreamcast">Dreamcast</option>
+                                    <option value="gba">Game Boy Advance</option>
+                                </select>
+                            </div>
+
+                            <!-- Processing Options Panel (hidden until ≥2 files ready) -->
+                            <div class="processing-options-panel" id="processingOptionsPanel" style="display:none;">
+
+                                <div class="panel-header">
+                                    <h3 class="panel-title">Processing Options</h3>
+                                    <button class="panel-chevron" id="processingOptionsToggle">&#9660;</button>
+                                </div>
+
+                                <div class="panel-body" id="processingOptionsBody">
+
+                                    <!-- Pool totals -->
+                                    <div>
+                                        <p class="options-section-label">Node Pool</p>
+                                        <div class="pool-totals">
+                                            <div class="pool-stat">
+                                                <span class="pool-stat-label">StaticStatics</span>
+                                                <span class="pool-stat-value" id="ppTotalStaticStatics">&#8212;</span>
+                                            </div>
+                                            <div class="pool-stat">
+                                                <span class="pool-stat-label">Statics</span>
+                                                <span class="pool-stat-value" id="ppTotalStaticNodes">&#8212;</span>
+                                            </div>
+                                            <div class="pool-stat">
+                                                <span class="pool-stat-label">Dynamic</span>
+                                                <span class="pool-stat-value" id="ppTotalDynamic">&#8212;</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Range breakdown -->
+                                    <div>
+                                        <p class="options-section-label">Scan Ranges</p>
+                                        <div class="range-breakdown-container" id="rangeBreakdownContainer"></div>
+                                    </div>
+
+                                    <!-- Recommendation -->
+                                    <div class="recommendation-box" id="recommendationBox" style="display:none;"></div>
+
+                                    <!-- Scan limits -->
+                                    <div>
+                                        <p class="options-section-label">Scan Limits</p>
+                                        <div class="scan-limits">
+                                            <div class="limit-input-group">
+                                                <label for="maxBreadth" class="limit-label">Breadth:</label>
+                                                <input type="text" id="maxBreadth" class="limit-input" value="0xFFC" placeholder="0xFFC">
+                                                <span class="limit-hint">Max offset</span>
+                                            </div>
+                                            <div class="limit-input-group">
+                                                <label for="maxDepth" class="limit-label">Depth:</label>
+                                                <input type="number" id="maxDepth" class="limit-input" value="12" min="1" max="20">
+                                                <span class="limit-hint">Max depth</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Scan option toggles -->
+                                    <div>
+                                        <p class="options-section-label">Options</p>
+                                        <div class="scan-options">
+                                            <div class="scan-option-row">
+                                                <button id="skipStickyPointers" class="btn-toggle-pill active">Skip Sticky Pointers</button>
+                                                <span class="scan-option-hint">Exclude base pointers with no value change</span>
+                                            </div>
+                                            <div class="scan-option-row">
+                                                <button id="earlyOutBasePointer" class="btn-toggle-pill">Early Out Base Pointer</button>
+                                                <span class="scan-option-hint">Move to next base pointer once a result is found</span>
+                                            </div>
+                                            <div class="scan-option-row">
+                                                <button id="earlyOutTarget" class="btn-toggle-pill">Early Out Target</button>
+                                                <span class="scan-option-hint">Stop all scanning once target address is reached</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Process button -->
+                                    <button id="processBtn" class="btn btn-primary btn-process" disabled>
+                                        &#9654; Process Batches
+                                    </button>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Global Drag & Drop -->
+                    <div class="dropzone-column">
+                        <div class="central-dropzone" id="centralDropzone">
+                            <div class="central-drop-content">
+                                <div class="drop-icon">📁</div>
+                                <p class="drop-text">Drop all CSV files here</p>
+                                <p class="drop-hint">Files will be loaded into individual slots below</p>
+                                <label class="file-input-label">
+                                    Or click to browse
+                                    <input type="file" class="file-input" id="fileInput" accept=".csv" multiple>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Wii State Compression (only visible when Wii selected) -->
+                <div class="wii-compression-section" id="wiiCompressionSection" style="display: none;">
+                    <div class="wii-compression-header">
+                        <div class="wii-compression-header-content">
+                            <h3 class="wii-compression-title">Wii State Compression</h3>
+                            <p class="wii-compression-subtitle">Merge MEM1 and MEM2 regions into a single file</p>
+                        </div>
+                        <button class="panel-chevron" id="wiiCompressionToggle">&#9660;</button>
+                    </div>
+                    
+                    <div class="wii-compression-body" id="wiiCompressionBody">
+                        <div class="wii-compression-layout">
+                        <!-- Drag & Drop Zone -->
+                        <div class="wii-dropzone" id="wiiDropzone">
+                            <div class="wii-drop-content">
+                                <div class="drop-icon">📄</div>
+                                <p class="drop-text">Drop 2 CSV files here</p>
+                                <p class="drop-hint">One for each memory region</p>
+                                <label class="file-input-label">
+                                    Or click to browse
+                                    <input type="file" class="file-input" id="wiiFileInput" accept=".csv" multiple>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- File Display Rows -->
+                        <div class="wii-files-container">
+                            <div class="wii-file-row" id="wiiMemARow">
+                                <span class="wii-mem-label">Mem A:</span>
+                                <div class="file-info">
+                                    <p class="file-filename" id="wiiMemAFilename">No file loaded</p>
+                                    <span class="file-size" id="wiiMemASize">Ã¢â‚¬â€</span>
+                                </div>
+                                <button class="btn btn-trim" id="wiiMemATrim" disabled>Trim</button>
+                            </div>
+
+                            <div class="wii-file-row" id="wiiMemBRow">
+                                <span class="wii-mem-label">Mem B:</span>
+                                <div class="file-info">
+                                    <p class="file-filename" id="wiiMemBFilename">No file loaded</p>
+                                    <span class="file-size" id="wiiMemBSize">Ã¢â‚¬â€</span>
+                                </div>
+                                <button class="btn btn-trim" id="wiiMemBTrim" disabled>Trim</button>
+                            </div>
+
+                            <!-- Compress and Clear Buttons -->
+                            <button class="btn btn-primary btn-compress-wii" id="wiiCompressBtn" disabled>
+                                <span class="btn-icon">🔥</span>
+                                Compress Both Regions
+                            </button>
+                            <button class="btn btn-secondary" id="wiiClearBtn">
+                                <span class="btn-icon">🗑️</span>
+                                Clear Files
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                </div>
+
+                <!-- File Upload Grid -->
+                <div class="file-upload-grid" id="fileUploadGrid">
+                    <!-- 10 file upload rows will be generated here -->
+                </div>
+            </section>
+
+            <!-- Processing Section -->
+            <section class="processing-section" id="processingSection">
+                <div class="section-header">
+                    <h2 class="section-title">Processing</h2>
+                </div>
+                
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill">
+                            <span class="progress-text">0%</span>
+                        </div>
+                    </div>
+                    <p class="status-text" id="statusText">Initializing...</p>
+                </div>
+
+                <div class="stage-indicators" id="stageIndicators">
+                    <div class="stage-indicator" data-stage="static-list">
+                        <div class="stage-number">1</div>
+                        <div class="stage-label">Static List Detection</div>
+                        <div class="stage-status">Waiting</div>
+                    </div>
+                    <div class="stage-indicator" data-stage="dynamic-list">
+                        <div class="stage-number">2</div>
+                        <div class="stage-label">Dynamic List Detection</div>
+                        <div class="stage-status">Waiting</div>
+                    </div>
+                    <div class="stage-indicator" data-stage="precompute">
+                        <div class="stage-number">3</div>
+                        <div class="stage-label">Precomputation</div>
+                        <div class="stage-status">Waiting</div>
+                    </div>
+                    <div class="stage-indicator" data-stage="bitmap-scan">
+                        <div class="stage-number">4</div>
+                        <div class="stage-label">Bitmap Scanning</div>
+                        <div class="stage-status">Waiting</div>
+                    </div>
+                    <div class="stage-indicator" data-stage="generate">
+                        <div class="stage-number">5</div>
+                        <div class="stage-label">Generating Achievements</div>
+                        <div class="stage-status">Waiting</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section" id="resultsSection">
+                <div class="section-header">
+                    <h2 class="section-title">Results</h2>
+                    <p class="section-description">Structure detection and achievement generation results</p>
+                </div>
+
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statBatches">0</div>
+                        <div class="stat-label">Batches Processed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statStructures">0</div>
+                        <div class="stat-label">Structures Found</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statStaticAchievements">0</div>
+                        <div class="stat-label">Static List Achievements</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statDynamicAchievements">0</div>
+                        <div class="stat-label">Dynamic List Achievements</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTime">0s</div>
+                        <div class="stat-label">Processing Time</div>
+                    </div>
+                </div>
+
+                <div class="results-actions">
+                    <button class="btn btn-primary btn-large" id="downloadStaticBtn" style="display: none;">
+                        <span class="btn-icon">💾</span>
+                        Download Static-Tests.txt
+                    </button>
+                    <button class="btn btn-primary btn-large" id="downloadDynamicBtn">
+                        <span class="btn-icon">💾</span>
+                        Download Dynamic-Tests.txt
+                    </button>
+                </div>
+
+                <!-- Target Paths (if any) -->
+                <div class="target-paths-card" id="targetPathsCard" style="display: none;">
+                    <div class="target-paths-header">
+                        <h3 class="target-paths-title">🎯 Paths to Target Addresses</h3>
+                        <button class="btn btn-secondary btn-small" id="copyTargetPathsBtn">
+                            <span class="btn-icon">📋</span>
+                            Copy to Clipboard
+                        </button>
+                    </div>
+                    <pre class="target-paths-display" id="targetPathsDisplay"></pre>
+                </div>
+
+                <div class="instructions-card">
+                    <h3 class="instructions-title">Next Steps:</h3>
+                    <ol class="instructions-list">
+                        <li>Copy-Paste <code>test_achievements.txt</code> into your existing {gameID}-User.txt file and save</li>
+                        <li>Enable achievements with "Pause on trigger" enabled for quick testing</li>
+                        <li>32-bit Mem!=Delta checks are set to a small range to detect changes for testing</li>
+                        <li>Perform actions in game (change character, open menu, etc.)</li>
+                        <li>Delete false triggering achievements or alts</li>
+                        <li>Walk pointer chains through an achievement to look for structures or values manually</li>
+                        <li>Map Base Pointer with the offset map provided in the Achievement for any valid finds</li>
+                        <li>Delete all test achievements when done</li>
+                    </ol>
+                </div>
+            </section>
+
+            <!-- About Section -->
+            <section class="about-section">
+                <div class="section-header">
+                    <h2 class="section-title">About BigDonRAM Scanner</h2>
+                </div>
+                
+                <div class="about-content">
+                    <p class="about-description">
+                        This tool analyzes RAM dumps from emulator save states to automatically detect data structures 
+                        (lists, trees, tables) using bitmap-based bidirectional scanning and generates test achievements 
+                        you can use to identify what each structure represents in your game.
+                    </p>
+                </div>
+            </section>
+        </main>
+
+        <footer class="app-footer">
+            <div class="footer-content">
+                <p>Built with bitmap-based structure detection | Open source on <a href="#" class="footer-link">GitHub</a></p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="js/core.js"></script>
+    <script src="js/preprocessor.js"></script>
+    <script src="js/chain-walker.js"></script>
+    <script src="js/list-detector.js"></script>
+    <script src="js/forward-scanner.js"></script>
+    <script src="js/scanner.js"></script>
+    <script src="js/generator.js"></script>
+    <script src="js/ui-controller.js"></script>
+</body>
+</html>
